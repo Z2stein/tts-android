@@ -1,36 +1,55 @@
-You are the coding agent for a new Android MVP repository.
+# AGENTS.md
 
-Project goal:
-Build the thinnest possible Android proof of concept for fully offline on-device TTS. The app takes long German text, renders it locally into one WAV file using Chatterbox Multilingual Q4, uses one fixed narrator voice, exposes one simple style choice (Neutral / Expressive), chunks text internally, shows progress, supports cancel, and only allows rendering while charging.
+## Mission
+Build the thinnest possible Android MVP for fully offline on-device German TTS using Chatterbox Multilingual Q4.
 
-Core engineering principles:
-- Keep scope brutally small.
-- Optimize for end-to-end feasibility, not polish.
-- Do not add features outside the MVP unless explicitly requested.
-- Prefer simple, deterministic, testable solutions.
-- Avoid overengineering, plugin architectures, generic frameworks, and premature optimization.
+The app must stay within this strict MVP:
+- one screen
+- long German text input
+- one fixed narrator voice
+- one style choice (Neutral / Expressive)
+- internal chunking
+- progress + cancel
+- one WAV output
+- render only while charging
 
-Architecture defaults:
-- Separate the code into app, domain, and platform layers.
-- Keep domain logic Android-independent where practical.
-- Isolate the model/runtime integration behind a small interface such as TtsEngine.
-- Build fake-first: prefer a FakeTtsEngine for early development and testing before real model integration.
+## Hard scope rules
+- Do **not** add features outside the MVP unless explicitly requested.
+- Do **not** implement cloud fallback, account systems, import pipelines, extra output formats, or multi-voice workflows.
+- Do **not** overengineer (no plugin systems, no generic abstraction frameworks, no premature optimization).
 
-Testing defaults:
-- Maximize automated testing of core logic.
-- Prefer unit tests for chunking, workflow orchestration, charging gate, progress, cancel, and error handling.
-- Treat audio naturalness and style quality as manual validation, not CI gates.
-- After changes, run the smallest relevant verification commands and report the result clearly.
+## Architecture defaults
+Use three layers:
+- `app`: UI/ViewModel/user interaction
+- `domain`: core workflow/state/chunking/cancel/charging logic
+- `platform`: Android + storage + real model/runtime adapters
 
-Execution rules:
-- For substantial tasks, first produce a short plan and the files you intend to create or modify.
-- Then implement in small, reviewable steps.
-- If something is unclear but not blocking, choose the simplest reasonable assumption and state it briefly.
-- If blocked by a major unknown, stop and explain exactly what is missing.
-- Keep outputs concise and practical.
+Keep domain Android-independent where practical.
 
-Definition of done for early repository work:
-- The repository structure is minimal and clear.
-- The MVP scope is documented.
-- The architecture and test strategy are documented.
-- The project is set up so core logic can become testable in CI before real model integration is attempted.
+Model/runtime integration must remain behind a small interface (e.g. `TtsEngine`).
+Build fake-first with `FakeTtsEngine`; integrate real runtime later in `platform` only.
+
+## Delivery expectations for coding tasks
+For substantial tasks:
+1. Start with a short plan and list files to touch.
+2. Implement in small, reviewable steps.
+3. State assumptions briefly when needed.
+4. If a major unknown blocks implementation, stop and describe exactly what is missing.
+
+## Testing expectations
+Prioritize automated tests for:
+- chunking
+- charging gate
+- render orchestration
+- progress updates
+- cancel behavior
+- error handling
+
+Audio naturalness/style quality are manual validation items, not CI gates.
+Run the smallest relevant checks and report results clearly.
+
+## Definition of done for early repository work
+- Repository structure is minimal and clear.
+- MVP scope is documented.
+- Architecture and test strategy are documented.
+- Core logic can be developed/tested with fake components before real model integration.
