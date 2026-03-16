@@ -12,13 +12,19 @@ import java.util.concurrent.Executors;
 public final class RenderViewModel {
     private final RenderAudioUseCase useCase;
     private final ExecutorService executor;
+    private final String engineMode;
 
     private volatile RenderUiState state;
 
     public RenderViewModel(RenderAudioUseCase useCase) {
+        this(useCase, "FAKE");
+    }
+
+    public RenderViewModel(RenderAudioUseCase useCase, String engineMode) {
         this.useCase = useCase;
+        this.engineMode = engineMode;
         this.executor = Executors.newSingleThreadExecutor();
-        this.state = RenderUiState.initial();
+        this.state = new RenderUiState(engineMode, "", RenderStyle.NEUTRAL, false, 0, 0, null, null, "Idle");
     }
 
     public RenderUiState getState() {
@@ -26,11 +32,11 @@ public final class RenderViewModel {
     }
 
     public void onTextChanged(String text) {
-        state = new RenderUiState(text, state.style(), false, 0, 0, null, null, "Idle");
+        state = new RenderUiState(engineMode, text, state.style(), false, 0, 0, null, null, "Idle");
     }
 
     public void onStyleSelected(RenderStyle style) {
-        state = new RenderUiState(state.text(), style, false, 0, 0, null, null, "Idle");
+        state = new RenderUiState(engineMode, state.text(), style, false, 0, 0, null, null, "Idle");
     }
 
     public void onGenerateClicked() {
@@ -39,12 +45,13 @@ public final class RenderViewModel {
         }
 
         RenderRequest request = new RenderRequest(state.text(), state.style());
-        state = new RenderUiState(state.text(), state.style(), true, 0, 0, null, null, "Rendering...");
+        state = new RenderUiState(engineMode, state.text(), state.style(), true, 0, 0, null, null, "Rendering...");
 
         executor.submit(() -> {
             RenderState finalState = useCase.execute(request, this::onUseCaseState);
             if (finalState instanceof RenderState.Success success) {
                 state = new RenderUiState(
+                        engineMode,
                         state.text(),
                         state.style(),
                         false,
@@ -55,9 +62,9 @@ public final class RenderViewModel {
                         "Success"
                 );
             } else if (finalState instanceof RenderState.Canceled) {
-                state = new RenderUiState(state.text(), state.style(), false, 0, 0, null, null, "Canceled");
+                state = new RenderUiState(engineMode, state.text(), state.style(), false, 0, 0, null, null, "Canceled");
             } else if (finalState instanceof RenderState.Failed failed) {
-                state = new RenderUiState(state.text(), state.style(), false, 0, 0, null, failed.reason(), mapFailure(failed.reason()));
+                state = new RenderUiState(engineMode, state.text(), state.style(), false, 0, 0, null, failed.reason(), mapFailure(failed.reason()));
             }
         });
     }
@@ -73,6 +80,7 @@ public final class RenderViewModel {
     private void onUseCaseState(RenderState renderState) {
         if (renderState instanceof RenderState.Running running) {
             state = new RenderUiState(
+                    engineMode,
                     state.text(),
                     state.style(),
                     true,
