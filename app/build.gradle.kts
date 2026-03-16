@@ -1,3 +1,5 @@
+import com.android.build.gradle.AppExtension
+
 buildscript {
     repositories {
         google()
@@ -10,9 +12,9 @@ buildscript {
 
 apply(plugin = "com.android.application")
 
-android {
+configure<AppExtension> {
     namespace = "com.ttsandroid.app"
-    compileSdk = 35
+    compileSdkVersion(35)
 
     defaultConfig {
         applicationId = "com.ttsandroid.app"
@@ -23,7 +25,7 @@ android {
     }
 
     buildTypes {
-        release {
+        getByName("release") {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -39,6 +41,6 @@ android {
 }
 
 dependencies {
-    implementation(project(":domain"))
-    implementation(project(":platform"))
+    add("implementation", project(":domain"))
+    add("implementation", project(":platform"))
 }
