@@ -1,0 +1,91 @@
+name: Android Checks + Debug APK
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+
+jobs:
+  verify-and-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run automated checks
+        run: gradle --no-daemon --console=plain :domain:check :app:check
+
+      - name: Detect APK task support
+        id: apk_support
+        run: |
+          if gradle --no-daemon --console=plain :app:tasks --all | grep -q "assembleDebug"; then
+            echo "supported=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "supported=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build debug APK
+        if: steps.apk_support.outputs.supported == 'true'
+        run: gradle --no-daemon --console=plain :app:assembleDebug
+
+      - name: Upload debug APK artifact
+        if: steps.apk_support.outputs.supported == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tts-android-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+      - name: Create APK unavailable note
+        if: steps.apk_support.outputs.supported != 'true'
+        run: |
+          cat > apk-unavailable.txt <<'EOF'
+          Kein installierbares Debug-APK wurde in diesem Lauf erzeugt.
+
+          Grund:
+          Der Gradle-Task :app:assembleDebug ist im aktuellen Repository-Stand nicht verfügbar.
+
+          Was trotzdem geprüft wurde:
+          - :domain:check
+          - :app:check
+          EOF
+
+      - name: Upload APK unavailable artifact
+        if: steps.apk_support.outputs.supported != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tts-android-debug-apk-unavailable
+          path: apk-unavailable.txt
+          if-no-files-found: error
+
+      - name: Publish final summary
+        if: steps.apk_support.outputs.supported != 'true'
+        run: |
+          echo "## Android Checks + Debug APK Ergebnis" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Ergebnis: Kein Debug-APK baubar in diesem Repository-Stand." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Grund: \\`:app:assembleDebug\\` ist nicht verfügbar." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Downloadbares Artifact: \\`tts-android-debug-apk-unavailable\\` (kurze Erklärung für manuelle Tester)." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Ausgeführt: \\`:domain:check\\` und \\`:app:check\\`." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish final summary (APK available)
+        if: steps.apk_support.outputs.supported == 'true'
+        run: |
+          echo "## Android Checks + Debug APK Ergebnis" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Ergebnis: Debug-APK erfolgreich gebaut und hochgeladen." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Downloadbares Artifact: \\`tts-android-debug-apk\\`." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Ausgeführt: \\`:domain:check\\`, \\`:app:check\\`, \\`:app:assembleDebug\\`." >> "$GITHUB_STEP_SUMMARY"
