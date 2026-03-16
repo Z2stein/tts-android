@@ -15,3 +15,5 @@ dependencyResolutionManagement {
 rootProject.name = "tts-android"
 
 include(":domain")
+include(":platform")
+include(":app")

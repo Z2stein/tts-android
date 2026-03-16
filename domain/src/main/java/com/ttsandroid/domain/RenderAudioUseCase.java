@@ -1,5 +1,6 @@
 package com.ttsandroid.domain;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -7,13 +8,20 @@ public final class RenderAudioUseCase {
     private final TtsEngine ttsEngine;
     private final TextChunker textChunker;
     private final ChargingGate chargingGate;
+    private final AudioOutputWriter outputWriter;
 
     private volatile boolean canceled;
 
-    public RenderAudioUseCase(TtsEngine ttsEngine, TextChunker textChunker, ChargingGate chargingGate) {
+    public RenderAudioUseCase(
+            TtsEngine ttsEngine,
+            TextChunker textChunker,
+            ChargingGate chargingGate,
+            AudioOutputWriter outputWriter
+    ) {
         this.ttsEngine = ttsEngine;
         this.textChunker = textChunker;
         this.chargingGate = chargingGate;
+        this.outputWriter = outputWriter;
     }
 
     public void cancel() {
@@ -37,6 +45,7 @@ public final class RenderAudioUseCase {
         }
 
         int totalBytes = 0;
+        List<byte[]> audioChunks = new ArrayList<>(chunks.size());
         onState.accept(new RenderState.Running(0, chunks.size()));
 
         for (int i = 0; i < chunks.size(); i++) {
@@ -62,15 +71,24 @@ public final class RenderAudioUseCase {
             }
 
             totalBytes += audioBytes.length;
+            audioChunks.add(audioBytes);
             onState.accept(new RenderState.Running(i + 1, chunks.size()));
         }
 
-        RenderState.Success success = new RenderState.Success(chunks.size(), totalBytes);
-        onState.accept(success);
-        return success;
+        try {
+            String outputPath = outputWriter.writeWav(audioChunks, request);
+            RenderState.Success success = new RenderState.Success(chunks.size(), totalBytes, outputPath);
+            onState.accept(success);
+            return success;
+        } catch (RuntimeException ex) {
+            RenderState.Failed failed = new RenderState.Failed(RenderFailure.OUTPUT_WRITE_ERROR);
+            onState.accept(failed);
+            return failed;
+        }
     }
 
     public RenderState execute(RenderRequest request) {
-        return execute(request, ignored -> {});
+        return execute(request, ignored -> {
+        });
     }
 }
