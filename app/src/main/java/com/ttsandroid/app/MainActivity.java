@@ -1,9 +1,6 @@
 package com.ttsandroid.app;
 
 import android.app.Activity;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -60,7 +57,8 @@ public final class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        viewModel = AppContainer.create(resolveOutputDirectory(), this::isDeviceCharging);
+        AndroidChargingGate chargingGate = new AndroidChargingGate(this);
+        viewModel = AppContainer.create(resolveOutputDirectory(), chargingGate);
 
         setContentView(createContentView());
         bindEvents();
@@ -233,17 +231,6 @@ public final class MainActivity extends Activity {
         } catch (IOException ignored) {
             return outputDirectory;
         }
-    }
-
-    private boolean isDeviceCharging() {
-        Intent batteryStatus = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
-        if (batteryStatus == null) {
-            return false;
-        }
-
-        int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
-        return status == BatteryManager.BATTERY_STATUS_CHARGING
-                || status == BatteryManager.BATTERY_STATUS_FULL;
     }
 
     private int dpToPx(int dp) {
