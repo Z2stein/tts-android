@@ -43,7 +43,9 @@ jobs:
 
       - name: Publish final summary
         run: |
-          echo "## Android Checks + Debug APK Ergebnis" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Ergebnis: Debug-APK erfolgreich gebaut und hochgeladen." >> "$GITHUB_STEP_SUMMARY"
-          echo "- Downloadbares Artifact: \\`tts-android-debug-apk\\`." >> "$GITHUB_STEP_SUMMARY"
-          echo "- Ausgeführt: \\`:domain:check\\`, \\`:app:check\\`, \\`:app:assembleDebug\\`." >> "$GITHUB_STEP_SUMMARY"
+          cat <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          ## Android Checks + Debug APK Ergebnis
+          - Ergebnis: Debug-APK erfolgreich gebaut und hochgeladen.
+          - Downloadbares Artifact: `tts-android-debug-apk`.
+          - Ausgeführt: `:domain:check`, `:app:check`, `:app:assembleDebug`.
+          EOF
