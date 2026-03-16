@@ -31,62 +31,21 @@ jobs:
       - name: Run automated checks
         run: gradle --no-daemon --console=plain :domain:check :app:check
 
-      - name: Detect APK task support
-        id: apk_support
-        run: |
-          if gradle --no-daemon --console=plain :app:tasks --all | grep -q "assembleDebug"; then
-            echo "supported=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "supported=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Build debug APK
-        if: steps.apk_support.outputs.supported == 'true'
         run: gradle --no-daemon --console=plain :app:assembleDebug
 
       - name: Upload debug APK artifact
-        if: steps.apk_support.outputs.supported == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: tts-android-debug-apk
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
-      - name: Create APK unavailable note
-        if: steps.apk_support.outputs.supported != 'true'
-        run: |
-          cat > apk-unavailable.txt <<'EOF'
-          Kein installierbares Debug-APK wurde in diesem Lauf erzeugt.
-
-          Grund:
-          Der Gradle-Task :app:assembleDebug ist im aktuellen Repository-Stand nicht verfügbar.
-
-          Was trotzdem geprüft wurde:
-          - :domain:check
-          - :app:check
-          EOF
-
-      - name: Upload APK unavailable artifact
-        if: steps.apk_support.outputs.supported != 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: tts-android-debug-apk-unavailable
-          path: apk-unavailable.txt
-          if-no-files-found: error
-
       - name: Publish final summary
-        if: steps.apk_support.outputs.supported != 'true'
         run: |
-          echo "## Android Checks + Debug APK Ergebnis" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Ergebnis: Kein Debug-APK baubar in diesem Repository-Stand." >> "$GITHUB_STEP_SUMMARY"
-          echo "- Grund: \\`:app:assembleDebug\\` ist nicht verfügbar." >> "$GITHUB_STEP_SUMMARY"
-          echo "- Downloadbares Artifact: \\`tts-android-debug-apk-unavailable\\` (kurze Erklärung für manuelle Tester)." >> "$GITHUB_STEP_SUMMARY"
-          echo "- Ausgeführt: \\`:domain:check\\` und \\`:app:check\\`." >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Publish final summary (APK available)
-        if: steps.apk_support.outputs.supported == 'true'
-        run: |
-          echo "## Android Checks + Debug APK Ergebnis" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Ergebnis: Debug-APK erfolgreich gebaut und hochgeladen." >> "$GITHUB_STEP_SUMMARY"
-          echo "- Downloadbares Artifact: \\`tts-android-debug-apk\\`." >> "$GITHUB_STEP_SUMMARY"
-          echo "- Ausgeführt: \\`:domain:check\\`, \\`:app:check\\`, \\`:app:assembleDebug\\`." >> "$GITHUB_STEP_SUMMARY"
+          cat <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          ## Android Checks + Debug APK Ergebnis
+          - Ergebnis: Debug-APK erfolgreich gebaut und hochgeladen.
+          - Downloadbares Artifact: `tts-android-debug-apk`.
+          - Ausgeführt: `:domain:check`, `:app:check`, `:app:assembleDebug`.
+          EOF

@@ -47,11 +47,15 @@ Milestone 6 focus in this repository state:
 This MVP intentionally excludes cloud fallback, account systems, import pipelines, extra output formats, and multi-voice workflows.
 
 ## GitHub Actions: Checks + Debug APK Artifact
-1. Open **Actions** in GitHub and run **Android Checks + Debug APK** via **Run workflow** (manual `workflow_dispatch`).
-2. The workflow also runs automatically on `pull_request` to `main` (and push to `main`).
-3. Open the workflow run and download the artifact from **Artifacts**:
-   - **`tts-android-debug-apk`**: real debug APK output was built and is available for manual install testing.
-   - **`tts-android-debug-apk-unavailable`**: no installable APK could be built in this run; download the note file for the exact reason.
-4. If an APK is available, it is for manual testing and is a debug/unsigned-style build output (no Play Store/release signing setup).
-5. On Android, installation may require enabling installs from unknown sources for the app/browser used to open the APK.
-6. CI runs with GitHub Actions Java/Gradle setup and does not require committed Gradle wrapper binaries in this repository.
+1. Open **Actions** in GitHub and run **Android Checks + Debug APK** via **Run workflow** (manual `workflow_dispatch`), or use an existing run from `pull_request`/`push`.
+2. The workflow executes:
+   - `:domain:check`
+   - `:app:check`
+   - `:app:assembleDebug`
+3. Open the finished workflow run and scroll to **Artifacts**.
+4. Download **`tts-android-debug-apk`** and extract the ZIP; it contains the generated debug APK from `app/build/outputs/apk/debug/`.
+5. Transfer the APK to Android (for example via direct phone download from GitHub, USB copy, Drive, or messaging app).
+6. On Android, open the APK and allow install permissions if prompted:
+   - enable “Install unknown apps” / unknown sources for the app used to open the APK (browser/files app)
+   - confirm installation
+7. This is a debug build artifact for manual testing (no Play Store release signing setup in this MVP repository).
