@@ -13,23 +13,24 @@ Build the thinnest possible one-screen app that:
 - allows rendering only while charging
 
 ## Current status
-Milestone 6 focus in this repository state:
+Milestone 9 focus in this repository state:
 - real-engine path remains isolated behind `TtsEngine`
 - engine mode is visible in UI state (`FAKE` / `REAL`)
 - output path and final status are visible for manual verification
-- manual real-device product checks are documented (not faked as CI)
+- Milestone 9 device acceptance package is documented (manual, not faked as CI)
 
 ## Repository structure
 - `docs/spec.md` — MVP requirements and acceptance criteria
 - `docs/architecture.md` — layered architecture and core workflow
 - `docs/test-strategy.md` — automated/manual test approach
-- `docs/milestone-6-device-validation.md` — practical real-device validation procedure
-- `docs/validation-long-text-de.txt` — stable long German sample text for milestone-6 checks
+- `docs/milestone-9-device-acceptance.md` — real-device acceptance procedure for MVP verdict
+- `docs/milestone-9-verdict-template.md` — structured human verdict form
+- `docs/validation-long-text-de.txt` — stable long German sample text for device acceptance checks
 - `app/` — Android UI/application layer
 - `domain/` — core logic/use cases
 - `platform/` — Android/model integration adapters
 
-## Real-engine validation quickstart (Milestone 6)
+## Real-engine validation quickstart (Milestone 9)
 1. Build and run checks:
    - `JAVA_HOME=/root/.local/share/mise/installs/java/21.0.2 gradle --no-daemon --console=plain :domain:check :app:check`
 2. Select real engine path:
@@ -37,7 +38,7 @@ Milestone 6 focus in this repository state:
    - Set runtime command: `CHATTERBOX_TTS_CMD="<your chatterbox command>"`
 3. Use long German sample text:
    - `docs/validation-long-text-de.txt`
-4. Execute manual device checks in `docs/milestone-6-device-validation.md`:
+4. Execute manual device checks in `docs/milestone-9-device-acceptance.md`:
    - airplane mode ON
    - charging connected
    - render Neutral and Expressive
