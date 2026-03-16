@@ -8,6 +8,7 @@ import com.ttsandroid.domain.RenderStyle;
 import com.ttsandroid.domain.TtsEngine;
 import com.ttsandroid.domain.TextChunker;
 import com.ttsandroid.platform.FakeTtsEngine;
+import com.ttsandroid.platform.RealTtsEngine;
 import com.ttsandroid.platform.WavFileAudioOutputWriter;
 
 import java.nio.file.Files;
@@ -24,6 +25,9 @@ public final class AppTestRunner {
         testExactlyOneWavFileCreated();
         testOutputPathReturned();
         testFailurePathEngineAndWriter();
+        testRealEngineSubstitutionThroughUseCaseContract();
+        testRealEngineInitializationFailureSurfacesEarly();
+        testRealEngineRenderFailureMapsToUiFailure();
         System.out.println("All app tests passed.");
     }
 
@@ -174,6 +178,78 @@ public final class AppTestRunner {
         waitFor(() -> !writerVm.getState().isRendering(), 2000);
         assertEquals(RenderFailure.OUTPUT_WRITE_ERROR, writerVm.getState().failure(), "writer failure state");
         writerVm.shutdown();
+    }
+
+    private static void testRealEngineSubstitutionThroughUseCaseContract() throws Exception {
+        Path fakeDir = Files.createTempDirectory("m5-fake-sub-");
+        RenderViewModel fakeVm = AppContainer.create(fakeDir, () -> true, AppContainer.EngineSelection.FAKE);
+        fakeVm.onTextChanged("Substitution mit Fake Engine.");
+        fakeVm.onGenerateClicked();
+        waitFor(() -> !fakeVm.getState().isRendering(), 2000);
+        assertEquals("Success", fakeVm.getState().statusMessage(), "fake selection still succeeds");
+        fakeVm.shutdown();
+
+        Path realDir = Files.createTempDirectory("m5-real-sub-");
+        RealTtsEngine.RealTtsRuntime runtime = new RealTtsEngine.RealTtsRuntime() {
+            @Override
+            public void initialize() {
+            }
+
+            @Override
+            public byte[] synthesize(String textChunk, RenderStyle style) {
+                return (style.name() + textChunk).getBytes();
+            }
+        };
+        RenderViewModel realVm = AppContainer.create(realDir, () -> true, new RealTtsEngine(runtime));
+        realVm.onTextChanged("Substitution mit Real Engine.");
+        realVm.onStyleSelected(RenderStyle.EXPRESSIVE);
+        realVm.onGenerateClicked();
+        waitFor(() -> !realVm.getState().isRendering(), 2000);
+        assertEquals("Success", realVm.getState().statusMessage(), "real engine succeeds behind same use case flow");
+        realVm.shutdown();
+    }
+
+    private static void testRealEngineInitializationFailureSurfacesEarly() {
+        RealTtsEngine.RealTtsRuntime failingRuntime = new RealTtsEngine.RealTtsRuntime() {
+            @Override
+            public void initialize() {
+                throw new RuntimeException("init boom");
+            }
+
+            @Override
+            public byte[] synthesize(String textChunk, RenderStyle style) {
+                return new byte[8];
+            }
+        };
+
+        try {
+            new RealTtsEngine(failingRuntime);
+            throw new AssertionError("expected RealTtsEngine init failure");
+        } catch (IllegalStateException expected) {
+            assertTrue(expected.getMessage().contains("initialization failed"), "init failure message");
+        }
+    }
+
+    private static void testRealEngineRenderFailureMapsToUiFailure() throws Exception {
+        Path dir = Files.createTempDirectory("m5-real-render-fail-");
+
+        RealTtsEngine.RealTtsRuntime runtime = new RealTtsEngine.RealTtsRuntime() {
+            @Override
+            public void initialize() {
+            }
+
+            @Override
+            public byte[] synthesize(String textChunk, RenderStyle style) {
+                throw new RuntimeException("render boom");
+            }
+        };
+
+        RenderViewModel vm = AppContainer.create(dir, () -> true, new RealTtsEngine(runtime));
+        vm.onTextChanged("Dieser Lauf muss fehlschlagen.");
+        vm.onGenerateClicked();
+        waitFor(() -> !vm.getState().isRendering(), 2000);
+        assertEquals(RenderFailure.ENGINE_ERROR, vm.getState().failure(), "real engine render failure mapped to ENGINE_ERROR");
+        vm.shutdown();
     }
 
     private static void waitFor(Check check, long timeoutMs) throws Exception {
