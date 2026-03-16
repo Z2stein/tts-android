@@ -45,3 +45,13 @@ Milestone 6 focus in this repository state:
 
 ## Scope reminder
 This MVP intentionally excludes cloud fallback, account systems, import pipelines, extra output formats, and multi-voice workflows.
+
+## GitHub Actions: Checks + Debug APK Artifact
+1. Open **Actions** in GitHub and run **Android Checks + Debug APK** via **Run workflow** (manual `workflow_dispatch`).
+2. The workflow also runs automatically on `pull_request` to `main` (and push to `main`).
+3. Open the workflow run and download the artifact from **Artifacts**:
+   - **`tts-android-debug-apk`**: real debug APK output was built and is available for manual install testing.
+   - **`tts-android-debug-apk-unavailable`**: no installable APK could be built in this run; download the note file for the exact reason.
+4. If an APK is available, it is for manual testing and is a debug/unsigned-style build output (no Play Store/release signing setup).
+5. On Android, installation may require enabling installs from unknown sources for the app/browser used to open the APK.
+6. CI runs with GitHub Actions Java/Gradle setup and does not require committed Gradle wrapper binaries in this repository.
