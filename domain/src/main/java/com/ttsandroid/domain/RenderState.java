@@ -7,7 +7,7 @@ public sealed interface RenderState permits RenderState.Idle, RenderState.Runnin
     record Running(int completedChunks, int totalChunks) implements RenderState {
     }
 
-    record Success(int totalChunks, int totalAudioBytes) implements RenderState {
+    record Success(int totalChunks, int totalAudioBytes, String outputPath) implements RenderState {
     }
 
     record Canceled() implements RenderState {

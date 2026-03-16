@@ -12,6 +12,8 @@ public final class DomainTestRunner {
         testProgressAndSuccess();
         testCancelHandling();
         testErrorHandling();
+        testOutputWriterErrorHandling();
+        testExactlyOneWavWrite();
         testEmptyInputFailure();
         System.out.println("All domain tests passed.");
     }
@@ -40,7 +42,8 @@ public final class DomainTestRunner {
         RenderAudioUseCase useCase = new RenderAudioUseCase(
                 new FakeTtsEngine(),
                 new TextChunker(20),
-                () -> false
+                () -> false,
+                new RecordingWriter()
         );
 
         List<RenderState> states = new ArrayList<>();
@@ -51,10 +54,12 @@ public final class DomainTestRunner {
     }
 
     private static void testProgressAndSuccess() {
+        RecordingWriter writer = new RecordingWriter();
         RenderAudioUseCase useCase = new RenderAudioUseCase(
                 new FakeTtsEngine(),
                 new TextChunker(12),
-                () -> true
+                () -> true,
+                writer
         );
 
         List<RenderState> states = new ArrayList<>();
@@ -63,21 +68,24 @@ public final class DomainTestRunner {
                 states::add
         );
 
-        assertEquals(new RenderState.Success(2, 20), result, "success result");
+        assertEquals(new RenderState.Success(2, 20, "fake.wav"), result, "success result");
         assertEquals(List.of(
                 new RenderState.Running(0, 2),
                 new RenderState.Running(1, 2),
                 new RenderState.Running(2, 2),
-                new RenderState.Success(2, 20)
+                new RenderState.Success(2, 20, "fake.wav")
         ), states, "progress states");
+        assertEquals(1, writer.writeCalls, "writer called once");
     }
 
     private static void testCancelHandling() {
         RenderAudioUseCase[] ref = new RenderAudioUseCase[1];
+        RecordingWriter writer = new RecordingWriter();
         RenderAudioUseCase useCase = new RenderAudioUseCase(
                 new FakeTtsEngine((chunk, style) -> ref[0].cancel()),
                 new TextChunker(6),
-                () -> true
+                () -> true,
+                writer
         );
         ref[0] = useCase;
 
@@ -90,24 +98,57 @@ public final class DomainTestRunner {
                 new RenderState.Running(1, 2),
                 new RenderState.Canceled()
         ), states, "cancel states");
+        assertEquals(0, writer.writeCalls, "writer not called after cancel");
     }
 
     private static void testErrorHandling() {
         RenderAudioUseCase useCase = new RenderAudioUseCase(
                 new FakeTtsEngine(true, null),
                 new TextChunker(20),
-                () -> true
+                () -> true,
+                new RecordingWriter()
         );
         RenderState result = useCase.execute(new RenderRequest("Hallo Welt.", RenderStyle.NEUTRAL));
 
         assertEquals(new RenderState.Failed(RenderFailure.ENGINE_ERROR), result, "engine error");
     }
 
+    private static void testOutputWriterErrorHandling() {
+        RenderAudioUseCase useCase = new RenderAudioUseCase(
+                new FakeTtsEngine(),
+                new TextChunker(20),
+                () -> true,
+                (chunks, request) -> {
+                    throw new RuntimeException("write boom");
+                }
+        );
+
+        RenderState result = useCase.execute(new RenderRequest("Hallo Welt.", RenderStyle.NEUTRAL));
+
+        assertEquals(new RenderState.Failed(RenderFailure.OUTPUT_WRITE_ERROR), result, "writer error");
+    }
+
+    private static void testExactlyOneWavWrite() {
+        RecordingWriter writer = new RecordingWriter();
+        RenderAudioUseCase useCase = new RenderAudioUseCase(
+                new FakeTtsEngine(),
+                new TextChunker(8),
+                () -> true,
+                writer
+        );
+
+        RenderState result = useCase.execute(new RenderRequest("aa bb cc dd ee ff", RenderStyle.NEUTRAL));
+
+        assertTrue(result instanceof RenderState.Success, "success expected");
+        assertEquals(1, writer.writeCalls, "exactly one write call");
+    }
+
     private static void testEmptyInputFailure() {
         RenderAudioUseCase useCase = new RenderAudioUseCase(
                 new FakeTtsEngine(),
                 new TextChunker(),
-                () -> true
+                () -> true,
+                new RecordingWriter()
         );
         RenderState result = useCase.execute(new RenderRequest("\n\t", RenderStyle.NEUTRAL));
 
@@ -156,6 +197,16 @@ public final class DomainTestRunner {
                 throw new RuntimeException("boom");
             }
             return new byte[textChunk.length()];
+        }
+    }
+
+    private static final class RecordingWriter implements AudioOutputWriter {
+        private int writeCalls;
+
+        @Override
+        public String writeWav(List<byte[]> chunkAudio, RenderRequest request) {
+            writeCalls++;
+            return "fake.wav";
         }
     }
 }
