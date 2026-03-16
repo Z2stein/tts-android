@@ -4,6 +4,7 @@ import com.ttsandroid.domain.RenderFailure;
 import com.ttsandroid.domain.RenderStyle;
 
 public record RenderUiState(
+        String engineMode,
         String text,
         RenderStyle style,
         boolean isRendering,
@@ -14,6 +15,6 @@ public record RenderUiState(
         String statusMessage
 ) {
     public static RenderUiState initial() {
-        return new RenderUiState("", RenderStyle.NEUTRAL, false, 0, 0, null, null, "Idle");
+        return new RenderUiState("FAKE", "", RenderStyle.NEUTRAL, false, 0, 0, null, null, "Idle");
     }
 }

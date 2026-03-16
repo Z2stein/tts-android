@@ -26,17 +26,21 @@ public final class AppContainer {
     }
 
     public static RenderViewModel create(Path outputDirectory, ChargingGate chargingGate, EngineSelection engineSelection) {
-        return create(outputDirectory, chargingGate, selectEngine(engineSelection));
+        return create(outputDirectory, chargingGate, selectEngine(engineSelection), engineSelection.name());
     }
 
     static RenderViewModel create(Path outputDirectory, ChargingGate chargingGate, TtsEngine ttsEngine) {
+        return create(outputDirectory, chargingGate, ttsEngine, ttsEngine.getClass().getSimpleName());
+    }
+
+    private static RenderViewModel create(Path outputDirectory, ChargingGate chargingGate, TtsEngine ttsEngine, String engineMode) {
         RenderAudioUseCase useCase = new RenderAudioUseCase(
                 ttsEngine,
                 new TextChunker(),
                 chargingGate,
                 new WavFileAudioOutputWriter(outputDirectory)
         );
-        return new RenderViewModel(useCase);
+        return new RenderViewModel(useCase, engineMode);
     }
 
     private static TtsEngine selectEngine(EngineSelection selection) {

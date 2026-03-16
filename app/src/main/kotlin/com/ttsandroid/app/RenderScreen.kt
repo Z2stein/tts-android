@@ -29,6 +29,7 @@ fun RenderScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("German Text to Speech (MVP)")
+        Text("Engine: ${state.engineMode()}")
 
         BasicTextField(
             value = state.text(),
@@ -58,6 +59,7 @@ fun RenderScreen(
 
         Text("Progress: ${state.completedChunks()}/${state.totalChunks()}")
         Text("Status: ${state.statusMessage()}")
+        Text("Output file name: render-output.wav")
         state.outputPath()?.let { Text("Output: $it") }
     }
 }

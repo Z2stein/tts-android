@@ -13,30 +13,35 @@ Build the thinnest possible one-screen app that:
 - allows rendering only while charging
 
 ## Current status
-This repository is initialized for MVP planning and implementation.
-
-Included now:
-- concise MVP scope/spec documentation
-- minimal architecture definition (`app`, `domain`, `platform`)
-- fake-first testing strategy
-- agent working rules for keeping scope strict
-
-Not included yet:
-- real model/runtime integration
-- production UI polish
-- non-MVP features
+Milestone 6 focus in this repository state:
+- real-engine path remains isolated behind `TtsEngine`
+- engine mode is visible in UI state (`FAKE` / `REAL`)
+- output path and final status are visible for manual verification
+- manual real-device product checks are documented (not faked as CI)
 
 ## Repository structure
 - `docs/spec.md` — MVP requirements and acceptance criteria
 - `docs/architecture.md` — layered architecture and core workflow
 - `docs/test-strategy.md` — automated/manual test approach
-- `app/` — Android UI/application layer (placeholder)
-- `domain/` — core logic/use cases (placeholder)
-- `platform/` — Android/model integration adapters (placeholder)
+- `docs/milestone-6-device-validation.md` — practical real-device validation procedure
+- `docs/validation-long-text-de.txt` — stable long German sample text for milestone-6 checks
+- `app/` — Android UI/application layer
+- `domain/` — core logic/use cases
+- `platform/` — Android/model integration adapters
 
-## Next steps
-1. Add domain interfaces and core workflow skeleton (`RenderAudioUseCase`, state model, chunking API).
-2. Implement `FakeTtsEngine` and test domain orchestration first.
-3. Add minimal Android app + ViewModel wiring to domain.
-4. Integrate real Chatterbox runtime behind `TtsEngine` in `platform` only.
-5. Keep CI focused on deterministic core checks before real model validation.
+## Real-engine validation quickstart (Milestone 6)
+1. Build and run checks:
+   - `JAVA_HOME=/root/.local/share/mise/installs/java/21.0.2 gradle --no-daemon --console=plain :domain:check :app:check`
+2. Select real engine path:
+   - Set JVM property: `-Dtts.engine=real`
+   - Set runtime command: `CHATTERBOX_TTS_CMD="<your chatterbox command>"`
+3. Use long German sample text:
+   - `docs/validation-long-text-de.txt`
+4. Execute manual device checks in `docs/milestone-6-device-validation.md`:
+   - airplane mode ON
+   - charging connected
+   - render Neutral and Expressive
+   - verify one WAV output (`render-output.wav`) and listen for style difference/usability
+
+## Scope reminder
+This MVP intentionally excludes cloud fallback, account systems, import pipelines, extra output formats, and multi-voice workflows.
